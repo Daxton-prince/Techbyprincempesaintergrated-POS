@@ -3176,9 +3176,9 @@ function startMpesaPolling() {
 
         // We need a backend endpoint to check the status. 
         // For now, we will simulate a check. You MUST build the backend endpoint for this to work.
-               try {
+                     try {
             const BACKEND_URL = ''; // Relative path
-            const statusRes = await fetch(`${BACKEND_URL}/api/check-payment-status?id=${currentMpesaCheckoutId}`);s
+            const statusRes = await fetch(`${BACKEND_URL}/api/check-payment-status?id=${currentMpesaCheckoutId}`);
             const statusData = await statusRes.json();
 
             if (statusData.status === 'SUCCESS') {
