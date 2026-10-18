@@ -1546,36 +1546,48 @@ function hideTodaySales() {
         }
 
         // ---------- COMPLETE SALE ----------
-        function completeSale() {
-            if (cart.length === 0) { notify('Cart is empty!', 'Warning'); return; }
+      // We rename the original function or create a wrapper
+function completeSale() {
+    // This is for cash/manual payments
+    completeSaleWithReceipt(selectedPayment, null);
+}
 
-            const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            const customer = document.getElementById('customerName').innerText;
+function completeSaleWithReceipt(paymentMethod, mpesaReceipt) {
+    if (cart.length === 0) { notify('Cart is empty!', 'Warning'); return; }
 
-            let products = getProducts();
-            let errors = [];
-            cart.forEach(item => {
-                const product = products.find(p => p.code === item.code);
-                if (!product) { errors.push(`${item.name} not found`); return; }
-                if (product.stock < item.qty) errors.push(`Not enough stock for ${item.name}`);
-                else product.stock -= item.qty;
-            });
-            if (errors.length) { notify(errors.join(' | '), 'Stock Error'); return; }
-            saveProducts(products);
+    const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const customer = document.getElementById('customerName').innerText;
 
-            const sale = {
-                id: Date.now(),
-                timestamp: Date.now(),
-                date: new Date().toLocaleDateString(),
-                time: new Date().toLocaleTimeString(),
-                customer: customer,
-                items: cart.map(item => ({ name: item.name, qty: item.qty, price: item.price })),
-                total: total,
-                discount: 0,
-                paid: total,
-                payment: selectedPayment,
-                revoked: false
-            };
+    // ... (keep your stock deduction logic exactly as it is) ...
+    let products = getProducts();
+    let errors = [];
+    cart.forEach(item => {
+        const product = products.find(p => p.code === item.code);
+        if (!product) { errors.push(`${item.name} not found`); return; }
+        if (product.stock < item.qty) errors.push(`Not enough stock for ${item.name}`);
+        else product.stock -= item.qty;
+    });
+    if (errors.length) { notify(errors.join(' | '), 'Stock Error'); return; }
+    saveProducts(products);
+
+    // Create the sale object
+    const sale = {
+        id: Date.now(),
+        timestamp: Date.now(),
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString(),
+        customer: customer,
+        items: cart.map(item => ({ name: item.name, qty: item.qty, price: item.price })),
+        total: total,
+        discount: 0,
+        paid: total,
+        payment: paymentMethod, // Use the method passed in
+        mpesaCode: mpesaReceipt, // <--- SAVE THE MPESA RECEIPT HERE
+        revoked: false
+    };
+    
+    // ... (keep the rest of your saveSales, saveCustomers, receipt printing logic exactly as it is) ...
+
             let sales = getSales();
             sales.push(sale);
             saveSales(sales);
@@ -3068,6 +3080,133 @@ function viewCustomerHistory(name) {
         `).join('');
     }
     document.getElementById('customerHistoryModal').classList.add('show');
+}
+// ---------- M-PESA PAYMENT ----------
+let mpesaPollInterval = null;
+let currentMpesaCheckoutId = null;
+
+function openMpesaModal() {
+    if (cart.length === 0) { notify('Cart is empty', 'Warning'); return; }
+    
+    const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    
+    // Reset UI
+    document.getElementById('mpesaAmountDisplay').innerText = `KES ${total.toFixed(2)}`;
+    document.getElementById('mpesaPhone').value = '';
+    document.getElementById('mpesaPromptBtn').disabled = false;
+    document.getElementById('mpesaPromptBtn').innerText = 'Send Prompt';
+    document.getElementById('mpesaStatus').style.display = 'none';
+    document.getElementById('mpesaModal').classList.add('show');
+    
+    // Clear any old polling
+    if (mpesaPollInterval) clearInterval(mpesaPollInterval);
+    currentMpesaCheckoutId = null;
+}
+
+function closeMpesaModal() {
+    document.getElementById('mpesaModal').classList.remove('show');
+    if (mpesaPollInterval) clearInterval(mpesaPollInterval);
+}
+
+async function sendMpesaPrompt() {
+    const phone = document.getElementById('mpesaPhone').value.trim();
+    const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const btn = document.getElementById('mpesaPromptBtn');
+    const statusDiv = document.getElementById('mpesaStatus');
+
+    if (!phone || phone.length < 9) {
+        notify('Please enter a valid phone number', 'Warning');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = 'Sending...';
+    
+    // YOUR VERCEL BACKEND URL (replace with your actual URL)
+    const BACKEND_URL = 'https://your-pos-backend.vercel.app'; 
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/initiate-payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                phone: phone,
+                amount: total,
+                reference: `POS-${Date.now()}`
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            btn.innerText = 'Waiting for PIN...';
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#f59e0b';
+            statusDiv.style.color = '#000';
+            statusDiv.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Please enter your M-Pesa PIN on your phone.';
+            
+            currentMpesaCheckoutId = data.checkoutRequestId;
+            startMpesaPolling(); // Start checking if they paid
+        } else {
+            notify(data.error || 'Failed to send prompt', 'Error');
+            btn.disabled = false;
+            btn.innerText = 'Send Prompt';
+        }
+    } catch (err) {
+        notify('Network error. Check backend connection.', 'Error');
+        btn.disabled = false;
+        btn.innerText = 'Send Prompt';
+    }
+}
+
+// This function asks your backend "Did it work yet?"
+function startMpesaPolling() {
+    let attempts = 0;
+    const maxAttempts = 20; // Wait about 60 seconds (20 * 3s)
+
+    mpesaPollInterval = setInterval(async () => {
+        attempts++;
+        
+        if (attempts > maxAttempts) {
+            clearInterval(mpesaPollInterval);
+            notify('Payment timed out. Customer did not enter PIN.', 'Timeout');
+            closeMpesaModal();
+            return;
+        }
+
+        // We need a backend endpoint to check the status. 
+        // For now, we will simulate a check. You MUST build the backend endpoint for this to work.
+        try {
+            const BACKEND_URL = 'https://your-pos-backend.vercel.app';
+            const statusRes = await fetch(`${BACKEND_URL}/api/check-payment-status?id=${currentMpesaCheckoutId}`);
+            const statusData = await statusRes.json();
+
+            if (statusData.status === 'SUCCESS') {
+                clearInterval(mpesaPollInterval);
+                const receiptCode = statusData.mpesaReceiptNumber;
+                
+                // AUTO-COMPLETE THE SALE
+                document.getElementById('mpesaStatus').innerHTML = `✅ Paid! Receipt: ${receiptCode}`;
+                document.getElementById('mpesaStatus').style.background = '#16a34a';
+                document.getElementById('mpesaStatus').style.color = '#fff';
+                
+                // Wait 2 seconds so cashier sees the receipt, then complete sale
+                setTimeout(() => {
+                    closeMpesaModal();
+                    // We pass 'M-Pesa' and the receipt code to our modified completeSale function
+                    completeSaleWithReceipt('M-Pesa', receiptCode); 
+                }, 2000);
+
+            } else if (statusData.status === 'FAILED') {
+                clearInterval(mpesaPollInterval);
+                notify('Payment failed. Customer cancelled or insufficient funds.', 'Failed');
+                closeMpesaModal();
+            }
+            // If status is PENDING, we do nothing and the interval runs again in 3 seconds.
+        } catch (e) {
+            console.error('Polling error', e);
+        }
+    }, 3000); // Check every 3 seconds
 }
 
         // ---------- START ----------
