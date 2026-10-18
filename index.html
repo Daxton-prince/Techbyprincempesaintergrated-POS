@@ -265,7 +265,7 @@
 
                     <div class="payment-methods">
                         <button class="payment-btn cash" onclick="selectPayment('Cash')"><i class="fa fa-money"></i> Cash</button>
-                        <button class="payment-btn mpesa" onclick="selectPayment('M-Pesa')"><i class="fa fa-mobile-alt"></i> M-Pesa</button>
+                       <button class="payment-btn mpesa" onclick="openMpesaModal()">M-Pesa</button>
                         <button class="payment-btn card" onclick="selectPayment('Card')"><i class="fa fa-credit-card"></i> Card</button>
                         <button class="payment-btn split" onclick="selectPayment('Split')"><i class="fa fa-split"></i> Split</button>
                     </div>
@@ -847,6 +847,37 @@
         <!-- Footer hint -->
         <div class="calc-hint">
             Press <kbd>Enter</kbd> to complete sale · <kbd>Delete</kbd> to clear · <kbd>Esc</kbd> to close
+        </div>
+    </div>
+</div>
+
+        
+<!--=====MPESA INTERGRATION MODAL===-->
+<!-- M-Pesa Payment Modal -->
+<div class="modal" id="mpesaModal">
+     <div class="modal-overlay" onclick="closeMpesaModal()"></div>
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3><i class="fa fa-mobile-alt"></i> M-Pesa Payment</h3>
+            <button class="close-btn" onclick="closeMpesaModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="text-align: center;">
+            <p style="font-size: 14px; color: #8aa4c4;">Amount to Pay</p>
+            <h2 style="color: #16a34a; margin: 5px 0 20px 0;" id="mpesaAmountDisplay">KES 0.00</h2>
+            
+            <div class="form-group" style="text-align: left;">
+                <label>Customer Phone Number</label>
+                <input type="tel" id="mpesaPhone" class="form-control" placeholder="e.g. 0712345678" style="font-size: 18px; text-align: center;">
+            </div>
+
+            <!-- Status Area -->
+            <div id="mpesaStatus" style="display: none; margin-top: 15px; padding: 10px; border-radius: 8px; font-weight: bold;">
+                <!-- Spinner or Success message goes here -->
+            </div>
+
+            <button id="mpesaPromptBtn" class="btn btn-primary" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px;" onclick="sendMpesaPrompt()">
+                Send Prompt
+            </button>
         </div>
     </div>
 </div>
