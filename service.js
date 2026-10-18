@@ -3123,7 +3123,7 @@ async function sendMpesaPrompt() {
     btn.innerText = 'Sending...';
     
     // YOUR VERCEL BACKEND URL (replace with your actual URL)
-    const BACKEND_URL = 'echbyprincempesaintergratedsystem-mvg3z8a0m.vercel.app'; 
+    const BACKEND_URL = ''; 
 
     try {
         const response = await fetch(`${BACKEND_URL}/api/initiate-payment`, {
@@ -3176,9 +3176,9 @@ function startMpesaPolling() {
 
         // We need a backend endpoint to check the status. 
         // For now, we will simulate a check. You MUST build the backend endpoint for this to work.
-        try {
-            const BACKEND_URL = 'techbyprincempesaintergratedsystem-mvg3z8a0m.vercel.app';
-            const statusRes = await fetch(`${BACKEND_URL}/api/check-payment-status?id=${currentMpesaCheckoutId}`);
+               try {
+            const BACKEND_URL = ''; // Relative path
+            const statusRes = await fetch(`${BACKEND_URL}/api/check-payment-status?id=${currentMpesaCheckoutId}`);s
             const statusData = await statusRes.json();
 
             if (statusData.status === 'SUCCESS') {
