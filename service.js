@@ -3177,7 +3177,7 @@ function startMpesaPolling() {
         // We need a backend endpoint to check the status. 
         // For now, we will simulate a check. You MUST build the backend endpoint for this to work.
         try {
-            const BACKEND_URL = 'https://your-pos-backend.vercel.app';
+            const BACKEND_URL = 'https://techbyprincempesaintergratedsystem-6sy1xyfud.vercel.app';
             const statusRes = await fetch(`${BACKEND_URL}/api/check-payment-status?id=${currentMpesaCheckoutId}`);
             const statusData = await statusRes.json();
 
