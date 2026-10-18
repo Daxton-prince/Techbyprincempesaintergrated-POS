@@ -2151,3 +2151,193 @@ body.dark .pos-page-title { color: #e8edf3; }
   letter-spacing: normal;
   font-size: inherit;
 }
+/* ---------- MPESA PAYMENT MODAL (PREMIUM) ---------- */
+
+/* Dark overlay and centering */
+/* ---------- MPESA PAYMENT MODAL (FORCE CENTER) ---------- */
+#mpesaModal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: auto !important; /* Overrides any global right:0 */
+    bottom: auto !important; /* Overrides any global bottom:0 */
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 99999 !important; /* Forces it above absolutely everything */
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    margin: 0 !important; /* Just in case */
+}
+
+#mpesaModal.show {
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+/* The actual box */
+#mpesaModal .modal-content {
+    background-color: #0d1b2a;
+    border: 1px solid #1a5bbf;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    color: #e2e8f0;
+    width: 90%;
+    max-width: 420px;
+    overflow: hidden; /* Keeps header attached to body */
+}
+
+#mpesaModal .modal-header {
+    border-bottom: 1px solid rgba(26, 91, 191, 0.5);
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #152743;
+}
+
+#mpesaModal .modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #3b82f6;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#mpesaModal .modal-header .close-btn {
+    background: none;
+    border: none;
+    color: #6a8aaa;
+    font-size: 24px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+#mpesaModal .modal-header .close-btn:hover {
+    color: #dc2626;
+}
+
+#mpesaModal .modal-body {
+    padding: 25px 20px;
+}
+
+/* Amount Box */
+.mpesa-amount-box {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.mpesa-amount-box p {
+    margin: 0 0 5px 0;
+    color: #8aa4c4;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.mpesa-amount-box h2 {
+    margin: 0;
+    font-size: 2.5rem;
+    color: #16a34a; /* M-Pesa Green */
+    font-weight: 700;
+    text-shadow: 0 0 20px rgba(22, 163, 74, 0.3);
+}
+
+/* Phone Input Group */
+.mpesa-input-group {
+    margin-bottom: 20px;
+}
+
+.mpesa-input-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+.mpesa-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.mpesa-input-wrapper i {
+    position: absolute;
+    left: 15px;
+    color: #6a8aaa;
+    font-size: 18px;
+}
+
+#mpesaPhone {
+    width: 100%;
+    padding: 14px 15px 14px 45px; /* Space for icon */
+    background: #152743 !important;
+    border: 1px solid #1a5bbf;
+    border-radius: 10px;
+    color: white !important;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+#mpesaPhone:focus {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+}
+
+.mpesa-input-group small {
+    display: block;
+    margin-top: 6px;
+    color: #6a8aaa;
+    font-size: 11px;
+}
+
+/* Status Box (Spinner / Success) */
+#mpesaStatus {
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+/* Action Button */
+.btn-mpesa {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: block;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: transform 0.1s, box-shadow 0.2s;
+}
+
+.btn-mpesa:hover {
+    box-shadow: 0 8px 20px rgba(22, 163, 74, 0.4);
+}
+
+.btn-mpesa:active {
+    transform: scale(0.98);
+}
+
+.btn-mpesa:disabled {
+    background: #4b5563;
+    cursor: not-allowed;
+    box-shadow: none;
+}
