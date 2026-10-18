@@ -1,11 +1,11 @@
 // api/initiate-payment.js
 export default async function handler(req, res) {
-  // Add these 3 lines:
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Allow your POS frontend to talk to this backend
+  res.setHeader('Access-Control-Allow-Origin', 'https://techbyprinceposintergratedsystem.vercel.app');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Handle the preflight request
+  // Handle the browser's "preflight" check
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -13,7 +13,8 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-  
+
+  // ... the rest of your initiate-payment code ...
   // ... rest of your code ...
 export default async function handler(req, res) {
   // 1. Only allow POST requests
