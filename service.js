@@ -3123,7 +3123,7 @@ async function sendMpesaPrompt() {
     btn.innerText = 'Sending...';
     
     // YOUR VERCEL BACKEND URL (replace with your actual URL)
-    const BACKEND_URL = 'https://your-pos-backend.vercel.app'; 
+    const BACKEND_URL = 'echbyprincempesaintergratedsystem-mvg3z8a0m.vercel.app'; 
 
     try {
         const response = await fetch(`${BACKEND_URL}/api/initiate-payment`, {
