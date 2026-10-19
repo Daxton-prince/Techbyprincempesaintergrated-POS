@@ -3158,35 +3158,48 @@ async function sendMpesaPrompt() {
         btn.innerText = 'Send Prompt';
     }
 }
+
+//MPESA POLLING AWAITI//
 function startMpesaPolling() {
     let attempts = 0;
-    // Wait about 120 seconds (40 * 3s) - Customers sometimes take a while
-    const maxAttempts = 40; 
+    const maxAttempts = 15; // 15 attempts * 3s = 45 seconds max wait
 
     mpesaPollInterval = setInterval(async () => {
         attempts++;
         
+        // Timeout fallback
         if (attempts > maxAttempts) {
             clearInterval(mpesaPollInterval);
-            notify('Payment timed out. Check M-Pesa manually.', 'Timeout');
-            closeMpesaModal();
+            const statusDiv = document.getElementById('mpesaStatus');
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#f59e0b';
+            statusDiv.style.color = '#000';
+            statusDiv.innerHTML = '⌛ Timeout. Check M-Pesa SMS manually. Did it succeed?';
+            
+            // Show a manual complete button
+            const btn = document.getElementById('mpesaPromptBtn');
+            btn.innerText = 'Force Complete Sale';
+            btn.disabled = false;
+            btn.onclick = () => {
+                closeMpesaModal();
+                completeSaleWithReceipt('M-Pesa', 'MANUAL-CODE');
+            };
             return;
         }
 
         try {
-            const BACKEND_URL = ''; 
+            const BACKEND_URL = '';
             const statusRes = await fetch(`${BACKEND_URL}/api/check-payment-status?id=${currentMpesaCheckoutId}`);
             const statusData = await statusRes.json();
 
             if (statusData.status === 'SUCCESS') {
                 clearInterval(mpesaPollInterval);
-                const receiptCode = statusData.mpesaReceiptNumber || 'MPESA-CODE';
+                const receiptCode = statusData.mpesaReceiptNumber;
                 
                 document.getElementById('mpesaStatus').innerHTML = `✅ Paid! Receipt: ${receiptCode}`;
                 document.getElementById('mpesaStatus').style.background = '#16a34a';
                 document.getElementById('mpesaStatus').style.color = '#fff';
                 
-                // Wait 2 seconds so cashier sees the receipt, then complete sale
                 setTimeout(() => {
                     closeMpesaModal();
                     completeSaleWithReceipt('M-Pesa', receiptCode); 
@@ -3197,13 +3210,11 @@ function startMpesaPolling() {
                 notify('Payment failed. Customer cancelled.', 'Failed');
                 closeMpesaModal();
             }
-            // If status is PENDING, it just skips this block and runs again in 3s.
         } catch (e) {
             console.error('Polling error', e);
         }
-    }, 3000); 
+    }, 3000);
 }
-
         // ---------- START ----------
         document.addEventListener('DOMContentLoaded', initSystem);
         
