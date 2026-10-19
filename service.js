@@ -3082,25 +3082,29 @@ function viewCustomerHistory(name) {
     document.getElementById('customerHistoryModal').classList.add('show');
 }
 // ---------- M-PESA PAYMENT ----------
+// ---------- M-PESA PAYMENT ----------
 let mpesaPollInterval = null;
 let currentMpesaCheckoutId = null;
+let currentMpesaReference = null; // <-- NEW: We need this to check status
 
 function openMpesaModal() {
     if (cart.length === 0) { notify('Cart is empty', 'Warning'); return; }
     
     const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     
-    // Reset UI
     document.getElementById('mpesaAmountDisplay').innerText = `KES ${total.toFixed(2)}`;
     document.getElementById('mpesaPhone').value = '';
-    document.getElementById('mpesaPromptBtn').disabled = false;
-    document.getElementById('mpesaPromptBtn').innerText = 'Send Prompt';
+    
+    const btn = document.getElementById('mpesaPromptBtn');
+    btn.disabled = false;
+    btn.innerText = 'Send Prompt';
+    btn.onclick = sendMpesaPrompt; // Reset the click handler
     document.getElementById('mpesaStatus').style.display = 'none';
     document.getElementById('mpesaModal').classList.add('show');
     
-    // Clear any old polling
     if (mpesaPollInterval) clearInterval(mpesaPollInterval);
     currentMpesaCheckoutId = null;
+    currentMpesaReference = null;
 }
 
 function closeMpesaModal() {
@@ -3122,7 +3126,6 @@ async function sendMpesaPrompt() {
     btn.disabled = true;
     btn.innerText = 'Sending...';
     
-    // YOUR VERCEL BACKEND URL (replace with your actual URL)
     const BACKEND_URL = ''; 
 
     try {
@@ -3146,7 +3149,8 @@ async function sendMpesaPrompt() {
             statusDiv.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Please enter your M-Pesa PIN on your phone.';
             
             currentMpesaCheckoutId = data.checkoutRequestId;
-            startMpesaPolling(); // Start checking if they paid
+            currentMpesaReference = data.reference; // Save the reference
+            startMpesaPolling();
         } else {
             notify(data.error || 'Failed to send prompt', 'Error');
             btn.disabled = false;
@@ -3159,42 +3163,34 @@ async function sendMpesaPrompt() {
     }
 }
 
-//MPESA POLLING AWAITI//
 function startMpesaPolling() {
     let attempts = 0;
-    const maxAttempts = 15; // 15 attempts * 3s = 45 seconds max wait
+    const maxAttempts = 15; // Wait 45 seconds (15 * 3s)
 
     mpesaPollInterval = setInterval(async () => {
         attempts++;
         
-        // Timeout fallback
         if (attempts > maxAttempts) {
             clearInterval(mpesaPollInterval);
-            const statusDiv = document.getElementById('mpesaStatus');
-            statusDiv.style.display = 'block';
-            statusDiv.style.background = '#f59e0b';
-            statusDiv.style.color = '#000';
-            statusDiv.innerHTML = '⌛ Timeout. Check M-Pesa SMS manually. Did it succeed?';
-            
-            // Show a manual complete button
-            const btn = document.getElementById('mpesaPromptBtn');
-            btn.innerText = 'Force Complete Sale';
-            btn.disabled = false;
-            btn.onclick = () => {
-                closeMpesaModal();
-                completeSaleWithReceipt('M-Pesa', 'MANUAL-CODE');
-            };
+            notify('Payment timed out. Check M-Pesa SMS manually.', 'Timeout');
+            closeMpesaModal();
             return;
         }
 
         try {
             const BACKEND_URL = '';
-            const statusRes = await fetch(`${BACKEND_URL}/api/check-payment-status?id=${currentMpesaCheckoutId}`);
+            // Send the reference via POST to check status
+            const statusRes = await fetch(`${BACKEND_URL}/api/check-payment-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reference: currentMpesaReference })
+            });
+            
             const statusData = await statusRes.json();
 
             if (statusData.status === 'SUCCESS') {
                 clearInterval(mpesaPollInterval);
-                const receiptCode = statusData.mpesaReceiptNumber;
+                const receiptCode = statusData.mpesaReceiptNumber || 'PAID';
                 
                 document.getElementById('mpesaStatus').innerHTML = `✅ Paid! Receipt: ${receiptCode}`;
                 document.getElementById('mpesaStatus').style.background = '#16a34a';
@@ -3210,6 +3206,7 @@ function startMpesaPolling() {
                 notify('Payment failed. Customer cancelled.', 'Failed');
                 closeMpesaModal();
             }
+            // If PENDING, it just does nothing and loops again in 3s.
         } catch (e) {
             console.error('Polling error', e);
         }
