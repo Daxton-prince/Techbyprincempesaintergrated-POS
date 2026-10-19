@@ -3158,34 +3158,30 @@ async function sendMpesaPrompt() {
         btn.innerText = 'Send Prompt';
     }
 }
-
-// This function asks your backend "Did it work yet?"
 function startMpesaPolling() {
     let attempts = 0;
-    const maxAttempts = 20; // Wait about 60 seconds (20 * 3s)
+    // Wait about 120 seconds (40 * 3s) - Customers sometimes take a while
+    const maxAttempts = 40; 
 
     mpesaPollInterval = setInterval(async () => {
         attempts++;
         
         if (attempts > maxAttempts) {
             clearInterval(mpesaPollInterval);
-            notify('Payment timed out. Customer did not enter PIN.', 'Timeout');
+            notify('Payment timed out. Check M-Pesa manually.', 'Timeout');
             closeMpesaModal();
             return;
         }
 
-        // We need a backend endpoint to check the status. 
-        // For now, we will simulate a check. You MUST build the backend endpoint for this to work.
-                     try {
-            const BACKEND_URL = ''; // Relative path
+        try {
+            const BACKEND_URL = ''; 
             const statusRes = await fetch(`${BACKEND_URL}/api/check-payment-status?id=${currentMpesaCheckoutId}`);
             const statusData = await statusRes.json();
 
             if (statusData.status === 'SUCCESS') {
                 clearInterval(mpesaPollInterval);
-                const receiptCode = statusData.mpesaReceiptNumber;
+                const receiptCode = statusData.mpesaReceiptNumber || 'MPESA-CODE';
                 
-                // AUTO-COMPLETE THE SALE
                 document.getElementById('mpesaStatus').innerHTML = `✅ Paid! Receipt: ${receiptCode}`;
                 document.getElementById('mpesaStatus').style.background = '#16a34a';
                 document.getElementById('mpesaStatus').style.color = '#fff';
@@ -3193,20 +3189,19 @@ function startMpesaPolling() {
                 // Wait 2 seconds so cashier sees the receipt, then complete sale
                 setTimeout(() => {
                     closeMpesaModal();
-                    // We pass 'M-Pesa' and the receipt code to our modified completeSale function
                     completeSaleWithReceipt('M-Pesa', receiptCode); 
                 }, 2000);
 
             } else if (statusData.status === 'FAILED') {
                 clearInterval(mpesaPollInterval);
-                notify('Payment failed. Customer cancelled or insufficient funds.', 'Failed');
+                notify('Payment failed. Customer cancelled.', 'Failed');
                 closeMpesaModal();
             }
-            // If status is PENDING, we do nothing and the interval runs again in 3 seconds.
+            // If status is PENDING, it just skips this block and runs again in 3s.
         } catch (e) {
             console.error('Polling error', e);
         }
-    }, 3000); // Check every 3 seconds
+    }, 3000); 
 }
 
         // ---------- START ----------
