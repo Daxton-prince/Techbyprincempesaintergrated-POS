@@ -6,38 +6,53 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { id } = req.query; // This is the checkoutRequestId
-  
-  // We use your working Basic Auth Token
-  const token = process.env.PAYHERO_BASIC_TOKEN || `Basic ${Buffer.from(`${process.env.PAYHERO_USERNAME}:${process.env.PAYHERO_PASSWORD}`).toString('base64')}`;
+  const { id } = req.query;
+  const token = process.env.PAYHERO_BASIC_TOKEN || 
+    `Basic ${Buffer.from(`${process.env.PAYHERO_USERNAME}:${process.env.PAYHERO_PASSWORD}`).toString('base64')}`;
 
   try {
-    // Ask Pay Hero directly for the status of this specific request
     const response = await fetch(`https://backend.payhero.co.ke/api/v2/transactions/${id}`, {
-      headers: {
-        'Authorization': token
-      }
+      headers: { 'Authorization': token }
     });
 
     const data = await response.json();
-    console.log('PayHero Status Data:', data); // Check Vercel logs to see what this returns!
+    
+    // CRITICAL: Log the FULL response so you can see exactly what Pay Hero returns
+    console.log('PAYHERO RAW STATUS RESPONSE:', JSON.stringify(data, null, 2));
 
-    // If Pay Hero says SUCCESS
-    if (data.status === 'SUCCESS' || data.success === true) {
-      return res.status(200).json({ 
-        status: 'SUCCESS', 
-        // Grab the receipt code (Pay Hero might call it different things)
-        mpesaReceiptNumber: data.mpesa_receipt_number || data.receipt || data.transaction_code || data.external_reference
-      });
+    // Pay Hero typically returns: { success: true/false, status: "QUEUED"|"SUCCESS"|"FAILED", ... }
+    // Match MULTIPLE possible success indicators
+    const isSuccess = 
+      data.status === 'SUCCESS' || 
+      data.status === 'COMPLETED' ||
+      data.status === 'success' ||
+      (data.success === true && data.status !== 'QUEUED' && data.status !== 'PENDING');
+
+    const isFailed = 
+      data.status === 'FAILED' || 
+      data.status === 'CANCELLED' ||
+      data.status === 'failed' ||
+      (data.success === false && data.status !== 'QUEUED' && data.status !== 'PENDING');
+
+    if (isSuccess) {
+      // Try multiple possible receipt field names
+      const receipt = 
+        data.mpesa_receipt_number || 
+        data.receipt || 
+        data.transaction_code || 
+        data.MPESA_Reference ||
+        data.external_reference ||
+        'UNKNOWN';
+      
+      return res.status(200).json({ status: 'SUCCESS', mpesaReceiptNumber: receipt });
     } 
-    // If Pay Hero says FAILED or CANCELLED
-    else if (data.status === 'FAILED' || data.status === 'CANCELLED') {
+    
+    if (isFailed) {
       return res.status(200).json({ status: 'FAILED' });
-    } 
-    // If it's still pending, or we don't understand the response
-    else {
-      return res.status(200).json({ status: 'PENDING' });
     }
+
+    // Still in progress
+    return res.status(200).json({ status: 'PENDING' });
 
   } catch (error) {
     console.error('Status Check Error:', error);
