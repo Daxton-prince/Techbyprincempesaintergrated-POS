@@ -35,7 +35,8 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${Buffer.from(`${process.env.PAYHERO_USERNAME}:${process.env.PAYHERO_PASSWORD}`).toString('base64')}`
+      // Change it to this:
+'Authorization': process.env.PAYHERO_BASIC_TOKEN
       },
       body: JSON.stringify({
         amount: Number(amount),
