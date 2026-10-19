@@ -3161,57 +3161,51 @@ async function sendMpesaPrompt() {
         btn.disabled = false;
         btn.innerText = 'Send Prompt';
     }
-}function startMpesaPolling() {
+}
+function startMpesaPolling() {
     let attempts = 0;
-    const maxAttempts = 20; // 20 attempts * 3s = 60 seconds total wait
+    const maxAttempts = 20;
 
-    // 1. WAIT 10 SECONDS before checking for the first time
-    setTimeout(() => {
-        mpesaPollInterval = setInterval(async () => {
-            attempts++;
+    mpesaPollInterval = setInterval(async () => {
+        attempts++;
+        
+        if (attempts > maxAttempts) {
+            clearInterval(mpesaPollInterval);
+            notify('Payment timed out. Check M-Pesa SMS manually.', 'Timeout');
+            closeMpesaModal();
+            return;
+        }
+
+        try {
+            const BACKEND_URL = '';
+            // MUST be POST with body containing the reference
+            const statusRes = await fetch(`${BACKEND_URL}/api/check-payment-status`, {
+                method: 'POST',  // ← CRITICAL
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reference: currentMpesaReference })
+            });
             
-            if (attempts > maxAttempts) {
+            const statusData = await statusRes.json();
+
+            if (statusData.status === 'SUCCESS') {
                 clearInterval(mpesaPollInterval);
-                notify('Payment timed out. Check M-Pesa SMS manually.', 'Timeout');
-                closeMpesaModal();
-                return;
-            }
-
-            try {
-                const BACKEND_URL = '';
-                const statusRes = await fetch(`${BACKEND_URL}/api/check-payment-status`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reference: currentMpesaReference })
-                });
-                
-                const statusData = await statusRes.json();
-
-                // 2. If Pay Hero still says 404, it's not an error - just keep waiting
-                if (statusData.status === 'SUCCESS') {
-                    clearInterval(mpesaPollInterval);
-                    const receiptCode = statusData.mpesaReceiptNumber || 'PAID';
-                    
-                    document.getElementById('mpesaStatus').innerHTML = `✅ Paid! Receipt: ${receiptCode}`;
-                    document.getElementById('mpesaStatus').style.background = '#16a34a';
-                    document.getElementById('mpesaStatus').style.color = '#fff';
-                    
-                    setTimeout(() => {
-                        closeMpesaModal();
-                        completeSaleWithReceipt('M-Pesa', receiptCode); 
-                    }, 2000);
-
-                } else if (statusData.status === 'FAILED') {
-                    clearInterval(mpesaPollInterval);
-                    notify('Payment failed. Customer cancelled.', 'Failed');
+                const receiptCode = statusData.mpesaReceiptNumber || 'PAID';
+                document.getElementById('mpesaStatus').innerHTML = `✅ Paid! Receipt: ${receiptCode}`;
+                document.getElementById('mpesaStatus').style.background = '#16a34a';
+                document.getElementById('mpesaStatus').style.color = '#fff';
+                setTimeout(() => {
                     closeMpesaModal();
-                }
-                // If status is PENDING or the response is a 404, it just loops again.
-            } catch (e) {
-                console.error('Polling error', e);
+                    completeSaleWithReceipt('M-Pesa', receiptCode); 
+                }, 2000);
+            } else if (statusData.status === 'FAILED') {
+                clearInterval(mpesaPollInterval);
+                notify('Payment failed. Customer cancelled.', 'Failed');
+                closeMpesaModal();
             }
-        }, 3000); // Check every 3 seconds AFTER the initial 10s delay
-    }, 10000); // <--- THE KEY FIX: Wait 10 seconds before starting the loop
+        } catch (e) {
+            console.error('Polling error', e);
+        }
+    }, 3000);
 }
         // ---------- START ----------
         document.addEventListener('DOMContentLoaded', initSystem);
