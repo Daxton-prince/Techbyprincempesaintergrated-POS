@@ -1,6 +1,4 @@
 // api/check-payment-status.js
-import { PayHeroClient } from 'payhero-devkit';
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -11,36 +9,38 @@ export default async function handler(req, res) {
   const { reference } = req.body;
   if (!reference) return res.status(400).json({ error: 'Missing reference' });
 
-  // Use the SDK to handle authentication and URL routing
-  const client = new PayHeroClient({
-    username: process.env.PAYHERO_USERNAME,
-    password: process.env.PAYHERO_PASSWORD
-  });
+  const token = process.env.PAYHERO_BASIC_TOKEN || 
+    `Basic ${Buffer.from(`${process.env.PAYHERO_USERNAME}:${process.env.PAYHERO_PASSWORD}`).toString('base64')}`;
 
   try {
-    // Ask the SDK to check the status
-    const status = await client.transactionStatus(reference);
-    console.log('SDK STATUS RESULT:', status);
+    // THE CORRECT ENDPOINT (Pay Hero uses POST for status)
+    const response = await fetch('https://backend.payhero.co.ke/api/v2/transaction-status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({ reference: reference })
+    });
 
-    // The SDK might return the status inside a `status` or `success` field.
-    // We check for common success indicators.
-    if (status.status === 'SUCCESS' || status.status === 'Success' || status.success === true) {
-      return res.status(200).json({
-        status: 'SUCCESS',
-        mpesaReceiptNumber: status.mpesa_receipt_number || status.receipt || status.MpesaReceiptNumber || 'PAID'
+    const data = await response.json();
+    console.log('PAYHERO RAW STATUS RESPONSE:', JSON.stringify(data, null, 2));
+
+    if (data.status === 'SUCCESS' || data.status === 'Success' || data.success === true) {
+      return res.status(200).json({ 
+        status: 'SUCCESS', 
+        mpesaReceiptNumber: data.mpesa_receipt_number || data.receipt || data.MpesaReceiptNumber || 'PAID'
       });
-    }
-
-    if (status.status === 'FAILED' || status.status === 'Failed') {
+    } 
+    
+    if (data.status === 'FAILED' || data.status === 'Failed') {
       return res.status(200).json({ status: 'FAILED' });
     }
 
     return res.status(200).json({ status: 'PENDING' });
 
   } catch (error) {
-    console.error('SDK Status Check Error:', error);
-    // If the SDK fails, we return PENDING so the frontend keeps trying,
-    // but we log the real error for you to see.
+    console.error('Status Check Error:', error);
     return res.status(200).json({ status: 'PENDING', error: error.message });
   }
 }
