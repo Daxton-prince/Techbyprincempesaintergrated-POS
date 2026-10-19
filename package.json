@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "payhero-devkit": "^1.1.1"
+    "@vercel/kv": "^1.0.0"
   }
 }
