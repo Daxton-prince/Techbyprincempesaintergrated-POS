@@ -3,7 +3,7 @@
 //  Caches the app shell so it works offline.
 // ============================================================
 
-const CACHE_NAME = 'tb-pos-v35';
+const CACHE_NAME = 'tb-pos-v40';
 
 // Files that make up the "app shell" — the minimum to boot the app offline.
 const APP_SHELL = [
