@@ -1,4 +1,6 @@
 // api/check-payment-status.js
+import { callbacks } from './payhero-callback.js';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -9,16 +11,29 @@ export default async function handler(req, res) {
   const { reference } = req.body;
   if (!reference) return res.status(400).json({ error: 'Missing reference' });
 
+  // 1. First check if the callback already received the success message
+  if (callbacks[reference]) {
+    const cb = callbacks[reference];
+    console.log(`Found callback for ${reference}:`, cb);
+    
+    if (cb.status === 'Success' || cb.status === 'SUCCESS') {
+      return res.status(200).json({ 
+        status: 'SUCCESS', 
+        mpesaReceiptNumber: cb.mpesaReceiptNumber 
+      });
+    }
+    if (cb.status === 'Failed' || cb.status === 'FAILED') {
+      return res.status(200).json({ status: 'FAILED' });
+    }
+  }
+
+  // 2. If no callback yet, fall back to Pay Hero API
   const token = process.env.PAYHERO_BASIC_TOKEN || 
     `Basic ${Buffer.from(`${process.env.PAYHERO_USERNAME}:${process.env.PAYHERO_PASSWORD}`).toString('base64')}`;
 
   try {
-    // Try GET with query parameter (SDK uses this pattern)
     const response = await fetch(`https://backend.payhero.co.ke/api/v2/transaction-status?reference=${reference}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': token
-      }
+      headers: { 'Authorization': token }
     });
 
     const data = await response.json();
@@ -39,6 +54,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Status Check Error:', error);
-    return res.status(200).json({ status: 'PENDING', error: error.message });
+    return res.status(200).json({ status: 'PENDING', error: 'Network error' });
   }
 }
