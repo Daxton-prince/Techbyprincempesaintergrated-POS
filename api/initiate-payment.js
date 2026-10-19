@@ -55,12 +55,12 @@ export default async function handler(req, res) {
       console.error('Pay Hero Error:', data);
       return res.status(400).json({ error: data.message || 'Payment initiation failed' });
     }
-
-    // 6. Return the Checkout ID to the frontend
+    // Return BOTH the ID and the reference
     return res.status(200).json({
       success: true,
-      checkoutRequestId: data.checkout_request_id || data.CheckoutRequestID, 
-      message: 'STK Push sent to customer phone'
+      checkoutRequestId: data.checkout_request_id || data.CheckoutRequestID,
+      reference: data.external_reference || reference, // <-- Add this
+      message: 'STK Push sent'
     });
 
   } catch (error) {
