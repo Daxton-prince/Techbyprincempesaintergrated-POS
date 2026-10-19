@@ -2,5 +2,7 @@
   "name": "techbyprince-pos",
   "version": "1.0.0",
   "type": "module",
-  "dependencies": {}
+  "dependencies": {
+    "payhero-devkit": "^1.1.1"
+  }
 }
