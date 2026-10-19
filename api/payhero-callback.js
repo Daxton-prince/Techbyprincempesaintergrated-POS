@@ -1,5 +1,4 @@
 // api/payhero-callback.js
-// In-memory store for callback results (works as long as the function is warm)
 const callbacks = {};
 
 export default async function handler(req, res) {
@@ -10,7 +9,6 @@ export default async function handler(req, res) {
   const payload = req.body;
   console.log('Pay Hero Callback Received:', JSON.stringify(payload, null, 2));
 
-  // Extract the external reference from the response
   const response = payload.response || payload;
   const externalRef = response.ExternalReference;
   const status = response.Status;
@@ -23,7 +21,7 @@ export default async function handler(req, res) {
       phone: response.Phone,
       timestamp: Date.now()
     };
-    console.log(`Stored callback for ${externalRef}:`, callbacks[externalRef]);
+    console.log(`✅ Stored callback for ${externalRef}:`, callbacks[externalRef]);
   }
 
   return res.status(200).json({ received: true });
