@@ -6,7 +6,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // We now expect the reference in the body
+  // We now expect the reference (e.g., "POS-123456") in the body
   const { reference } = req.body;
 
   if (!reference) return res.status(400).json({ error: 'Missing reference' });
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     `Basic ${Buffer.from(`${process.env.PAYHERO_USERNAME}:${process.env.PAYHERO_PASSWORD}`).toString('base64')}`;
 
   try {
-    // Correct endpoint: POST to /api/v2/transaction-status
+    // CORRECT ENDPOINT: /api/v2/transaction-status
     const response = await fetch('https://backend.payhero.co.ke/api/v2/transaction-status', {
       method: 'POST',
       headers: {
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     console.log('PAYHERO STATUS CHECK:', JSON.stringify(data, null, 2));
 
     // Pay Hero returns { success: true, status: "SUCCESS", ... }
-    if (data.status === 'SUCCESS' || data.status === 'Success' || data.status === 'success') {
+    if (data.status === 'SUCCESS' || data.status === 'Success' || data.status === 'success' || data.success === true) {
       return res.status(200).json({ 
         status: 'SUCCESS', 
         mpesaReceiptNumber: data.mpesa_receipt_number || data.receipt || data.MpesaReceiptNumber || 'PAID'
