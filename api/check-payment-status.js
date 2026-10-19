@@ -11,10 +11,10 @@ export default async function handler(req, res) {
   const { reference } = req.body;
   if (!reference) return res.status(400).json({ error: 'Missing reference' });
 
-  // 1. First check if the callback already received the success message
+  // 1. Check the callback store first (this is the key fix)
   if (callbacks[reference]) {
     const cb = callbacks[reference];
-    console.log(`Found callback for ${reference}:`, cb);
+    console.log(`✅ Found callback for ${reference}:`, cb);
     
     if (cb.status === 'Success' || cb.status === 'SUCCESS') {
       return res.status(200).json({ 
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    console.log('PAYHERO STATUS:', JSON.stringify(data, null, 2));
+    console.log('PAYHERO STATUS FALLBACK:', JSON.stringify(data, null, 2));
 
     if (data.status === 'SUCCESS' || data.status === 'Success' || data.success === true) {
       return res.status(200).json({ 
